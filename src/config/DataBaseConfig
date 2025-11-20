@@ -1,0 +1,190 @@
+CREATE DATABASE IF NOT EXISTS mindsound CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE mindsound;
+
+CREATE TABLE roles (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(50) NOT NULL UNIQUE,
+  description VARCHAR(255),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE users (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  role_id INT NOT NULL,
+  is_active TINYINT(1) DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  last_login TIMESTAMP NULL,
+  CONSTRAINT fk_users_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+CREATE TABLE user_profiles (
+  user_id BIGINT PRIMARY KEY,
+  display_name VARCHAR(100),
+  bio TEXT,
+  country CHAR(2),
+  birthdate DATE,
+  avatar_url VARCHAR(1024),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_profile_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE artists (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  slug VARCHAR(255) NOT NULL UNIQUE,
+  bio TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE artist_members (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  artist_id BIGINT NOT NULL,
+  user_id BIGINT NULL,
+  name VARCHAR(255),
+  role VARCHAR(100),
+  CONSTRAINT fk_artist_member_artist FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE,
+  CONSTRAINT fk_artist_member_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE genres (
+  id SMALLINT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL UNIQUE
+) ENGINE=InnoDB;
+
+CREATE TABLE albums (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  artist_id BIGINT NOT NULL,
+  title VARCHAR(512) NOT NULL,
+  slug VARCHAR(512) NOT NULL,
+  release_date DATE,
+  cover_url VARCHAR(1024),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_album_artist FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE,
+  UNIQUE KEY ux_album_artist_slug (artist_id, slug)
+) ENGINE=InnoDB;
+
+CREATE TABLE tracks (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  album_id BIGINT NULL,
+  artist_id BIGINT NOT NULL,
+  title VARCHAR(512) NOT NULL,
+  duration_seconds INT UNSIGNED,
+  audio_url VARCHAR(1024),
+  is_explicit TINYINT(1) DEFAULT 0,
+  track_number SMALLINT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_track_album FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE SET NULL,
+  CONSTRAINT fk_track_artist FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE,
+  INDEX ix_tracks_artist (artist_id),
+  INDEX ix_tracks_title (title(150))
+) ENGINE=InnoDB;
+
+CREATE TABLE track_genres (
+  track_id BIGINT NOT NULL,
+  genre_id SMALLINT NOT NULL,
+  PRIMARY KEY (track_id, genre_id),
+  CONSTRAINT fk_tg_track FOREIGN KEY (track_id) REFERENCES tracks(id) ON DELETE CASCADE,
+  CONSTRAINT fk_tg_genre FOREIGN KEY (genre_id) REFERENCES genres(id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+
+CREATE TABLE playlists (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  is_public TINYINT(1) DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL,
+  CONSTRAINT fk_playlist_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+
+CREATE TABLE playlist_tracks (
+  playlist_id BIGINT NOT NULL,
+  track_id BIGINT NOT NULL,
+  position INT NOT NULL,
+  added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (playlist_id, position),
+  CONSTRAINT fk_pt_playlist FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE,
+  CONSTRAINT fk_pt_track FOREIGN KEY (track_id) REFERENCES tracks(id) ON DELETE CASCADE,
+  INDEX ix_playlist_track (track_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE favorites (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT NOT NULL,
+  target_type ENUM('track','album','artist','playlist') NOT NULL,
+  target_id BIGINT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_fav_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX ux_fav_user_target (user_id, target_type, target_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE follows (
+  follower_id BIGINT NOT NULL,
+  followee_type ENUM('artist','user') NOT NULL,
+  followee_id BIGINT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (follower_id, followee_type, followee_id),
+  CONSTRAINT fk_follows_follower FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE comments (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT NOT NULL,
+  target_type ENUM('track','album','playlist') NOT NULL,
+  target_id BIGINT NOT NULL,
+  body TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_comment_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE ratings (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT NOT NULL,
+  target_type ENUM('track','album') NOT NULL,
+  target_id BIGINT NOT NULL,
+  score TINYINT NOT NULL CHECK (score BETWEEN 1 AND 5),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY ux_rating_user_target (user_id, target_type, target_id),
+  CONSTRAINT fk_rating_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE playback_history (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT NULL,
+  track_id BIGINT NOT NULL,
+  played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  device_info VARCHAR(255),
+  position_seconds INT UNSIGNED DEFAULT 0,
+  CONSTRAINT fk_ph_track FOREIGN KEY (track_id) REFERENCES tracks(id) ON DELETE CASCADE,
+  CONSTRAINT fk_ph_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+  INDEX ix_ph_user_playedat (user_id, played_at)
+) ENGINE=InnoDB;
+
+CREATE TABLE subscriptions (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT NOT NULL,
+  plan VARCHAR(100) NOT NULL,
+  status ENUM('active','canceled','past_due','trial') DEFAULT 'active',
+  started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  ends_at TIMESTAMP NULL,
+  CONSTRAINT fk_sub_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE payments (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT NOT NULL,
+  subscription_id BIGINT NULL,
+  amount_cents INT NOT NULL,
+  currency CHAR(3) NOT NULL DEFAULT 'USD',
+  status ENUM('succeeded','failed','pending') NOT NULL,
+  paid_at TIMESTAMP NULL,
+  CONSTRAINT fk_payment_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_payment_sub FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+SET FOREIGN_KEY_CHECKS = 1;
