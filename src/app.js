@@ -5,6 +5,7 @@ dotenv.config();
 
 import { connectDB, sequelize } from "./config/db.js";
 import { Role } from "./models/index.js";
+import { registerUser } from "./services/auth.service.js";
 
 import authRoutes from "./routes/auth.routes.js";
 import usersRoutes from "./routes/users.routes.js";
@@ -33,6 +34,19 @@ const start = async () => {
   for (const r of roles) {
     const found = await Role.findOne({ where: { name: r } });
     if (!found) await Role.create({ name: r, description: `${r} role` });
+  }
+
+  // Seed admin user for development if not exists
+  try {
+    const adminEmail = process.env.ADMIN_EMAIL || "admin@local";
+    const adminPass = process.env.ADMIN_PASS || "admin123";
+    const adminUser = await (await sequelize.models.User.findOne({ where: { email: adminEmail } }));
+    if (!adminUser) {
+      await registerUser({ email: adminEmail, password: adminPass, roleName: "admin" });
+      console.log(`✅ Admin user created: ${adminEmail} / ${adminPass}`);
+    }
+  } catch (err) {
+    // ignore seed errors
   }
 
   app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));

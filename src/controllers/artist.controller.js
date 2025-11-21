@@ -9,9 +9,14 @@ export const createArtist = async (req, res) => {
 
     if (req.file) {
       const path = req.file.path;
-      const r = await cloudinary.uploader.upload(path, { folder: "mindsound/artists", resource_type: "image" });
-      image_url = r.secure_url;
-      fs.unlinkSync(path);
+      if (process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET && process.env.CLOUDINARY_CLOUD_NAME) {
+        const r = await cloudinary.uploader.upload(path, { folder: "mindsound/artists", resource_type: "image" });
+        image_url = r.secure_url;
+        fs.unlinkSync(path);
+      } else {
+        // Cloudinary not configured in env; keep local path as a temporary reference
+        image_url = `/uploads/${req.file.filename}`;
+      }
     }
 
     const artist = await Artist.create({ name, slug, bio, image_url });
@@ -48,9 +53,13 @@ export const updateArtist = async (req, res) => {
     // handle optional file
     if (req.file) {
       const path = req.file.path;
-      const r = await cloudinary.uploader.upload(path, { folder: "mindsound/artists", resource_type: "image" });
-      artist.image_url = r.secure_url;
-      fs.unlinkSync(path);
+      if (process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET && process.env.CLOUDINARY_CLOUD_NAME) {
+        const r = await cloudinary.uploader.upload(path, { folder: "mindsound/artists", resource_type: "image" });
+        artist.image_url = r.secure_url;
+        fs.unlinkSync(path);
+      } else {
+        artist.image_url = `/uploads/${req.file.filename}`;
+      }
     }
     if (req.body.name) artist.name = req.body.name;
     if (req.body.slug) artist.slug = req.body.slug;
