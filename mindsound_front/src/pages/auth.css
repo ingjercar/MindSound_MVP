@@ -1,0 +1,82 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
+
+.auth-container {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #000000 10%, #253544 40%, #4b5070 70%, #c7a85e 100%);
+    background-attachment: fixed;
+    color: #d3d3d3;
+    position: relative;
+    font-family: "Poppins", sans-serif;
+}
+
+header {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    width: calc(100% - 40px);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header nav {
+    display: flex;
+    gap: 20px;
+}
+
+header nav a {
+    color: #1a1a1a;
+    text-decoration: none;
+}
+
+.login-box {
+    background: linear-gradient(to bottom, #111 10%, #444 100%);
+    border-radius: 8px;
+    padding: 40px 50px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+    max-width: 350px;
+    width: 100%;
+    text-align: center;
+}
+
+.login-box h2 {
+    font-size: 2.5rem;
+    margin-bottom: 30px;
+    color: #bfbfbf;
+}
+
+.form-control {
+    background: #000;
+    border: none;
+    color: #fff;
+    margin-bottom: 15px;
+    padding: 10px;
+}
+
+.btn-login {
+    background: #074c5c;
+    border: none;
+    width: 100%;
+    padding: 10px;
+    color: #d5d5d5;
+    margin-top: 5px;
+    cursor: pointer;
+}
+
+.btn-login:hover {
+    background: #096577;
+    color: #fff;
+}
+
+.register-link {
+    margin-top: 20px;
+    display: block;
+    color: #e1e1e1;
+}

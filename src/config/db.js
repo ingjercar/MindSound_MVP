@@ -1,6 +1,8 @@
+
 import { Sequelize } from "sequelize";
 import dotenv from "dotenv";
 dotenv.config();
+
 
 const createMySql = () => new Sequelize(
   process.env.DB_NAME,
@@ -8,12 +10,12 @@ const createMySql = () => new Sequelize(
   process.env.DB_PASSWORD,
   {
     host: process.env.DB_HOST,
+    port: process.env.DB_PORT || 26458,
     dialect: "mysql",
     logging: false,
     define: { timestamps: true, underscored: false }
   }
 );
-
 const createSqlite = () => new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false, define: { timestamps: true } });
 
 // instantiate sequelize immediately so models can define themselves at import time

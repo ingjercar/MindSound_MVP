@@ -3,12 +3,30 @@ import { sequelize } from "../config/db.js";
 import Role from "./Role.js";
 
 const User = sequelize.define("User", {
-  id: { type: DataTypes.BIGINT.UNSIGNED, autoIncrement: true, primaryKey: true },
+  id: {
+    type: DataTypes.BIGINT.UNSIGNED,
+    autoIncrement: true,
+    primaryKey: true
+  }
+  ,
   email: { type: DataTypes.STRING(255), allowNull: false, unique: true },
   password_hash: { type: DataTypes.STRING(255), allowNull: false },
+  role_id: {
+    type: DataTypes.BIGINT.UNSIGNED,
+    allowNull: false,
+    references: {
+      model: "roles",
+      key: "id"
+    }
+  },
   is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
-  last_login: { type: DataTypes.DATE, allowNull: true }
-}, { tableName: "users" });
+  last_login: { type: DataTypes.DATE }
+}, {
+  tableName: "users",
+  timestamps: true,
+  createdAt: "created_at",
+  updatedAt: false
+});
 
 
 User.belongsTo(Role, { foreignKey: { name: "role_id", allowNull: false }, as: "role" });

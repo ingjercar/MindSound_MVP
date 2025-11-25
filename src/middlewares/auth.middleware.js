@@ -1,11 +1,13 @@
 import { verifyAccessToken } from "../services/auth.service.js";
 
-export const authRequired = (req, res, next) => {
+export const authMiddleware = (req, res, next) => {
   try {
     const header = req.headers.authorization;
     if (!header) return res.status(401).json({ msg: "Missing authorization header" });
+
     const token = header.split(" ")[1];
     const payload = verifyAccessToken(token);
+
     req.user = payload;
     next();
   } catch (err) {
