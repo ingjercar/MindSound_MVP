@@ -1,42 +1,57 @@
-import React, { createContext, useState, useEffect } from "react";
+// src/contexts/AuthContext.jsx
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { postJson } from "../api";
 
-export const AuthContext = createContext();
+export const AuthContext = createContext(null);
+
+export function useAuth() {
+  return useContext(AuthContext);
+}
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("ms_user")); } catch(e){ return null; }
-  });
-  const [token, setToken] = useState(() => localStorage.getItem("ms_token"));
+  const [user, setUser] = useState(null); // { id, email, role }
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (token) localStorage.setItem("ms_token", token); else localStorage.removeItem("ms_token");
-  }, [token]);
+    const raw = localStorage.getItem("ms_user");
+    const token = localStorage.getItem("ms_token");
+    if (raw && token) {
+      try {
+        setUser(JSON.parse(raw));
+      } catch (e) {
+        localStorage.removeItem("ms_user");
+        localStorage.removeItem("ms_token");
+      }
+    }
+    setReady(true);
+  }, []);
 
-  useEffect(() => {
-    if (user) localStorage.setItem("ms_user", JSON.stringify(user)); else localStorage.removeItem("ms_user");
-  }, [user]);
-
-  const login = async (email, password) => {
-    const data = await postJson("/api/auth/login", { email, password });
-    if (data.accessToken) {
-      setToken(data.accessToken);
-      setUser(data.user);
+  async function login(email, password) {
+    const res = await postJson("/api/auth/login", { email, password });
+    if (res.accessToken) {
+      localStorage.setItem("ms_token", res.accessToken);
+      localStorage.setItem("ms_user", JSON.stringify(res.user));
+      setUser(res.user);
       return { ok: true };
     }
-    return { ok: false, error: data.error || data.message };
-  };
+    return { ok: false, error: res.error || res };
+  }
 
-  const register = async (email, password) => {
-    const data = await postJson("/api/auth/register", { email, password });
-    // many backends auto-login; adapt if yours returns tokens
-    return data;
-  };
+  async function register(email, password) {
+    const res = await postJson("/api/auth/register", { email, password });
+    // you may auto-login after register if backend returns tokens
+    return res;
+  }
 
-  const logout = () => {
-    setToken(null);
+  function logout() {
+    localStorage.removeItem("ms_token");
+    localStorage.removeItem("ms_user");
     setUser(null);
-  };
+  }
 
-  return <AuthContext.Provider value={{ user, token, login, register, logout }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, ready, login, logout, register }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }

@@ -1,6 +1,7 @@
-// simple fetch wrappers. Uses Vite env VITE_API_BASE (or fallback)
-const API_BASE = import.meta.env.VITE_API_BASE || process.env.REACT_APP_API_BASE || "http://localhost:3000";
+// src/api.js
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3000";
 
+// helper headers with token
 const authHeaders = () => {
   const token = localStorage.getItem("ms_token");
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -25,7 +26,7 @@ export async function getJson(path) {
 export async function uploadForm(path, formData) {
   const res = await fetch(`${API_BASE}${path}`, {
     method: "POST",
-    headers: { ...authHeaders() }, // don't set content-type
+    headers: { ...authHeaders() }, // don't set content-type for multipart
     body: formData,
   });
   return res.json();

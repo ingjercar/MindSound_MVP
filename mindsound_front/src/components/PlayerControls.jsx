@@ -1,13 +1,27 @@
-import React from "react";
+// src/components/PlayerControls.jsx
+import React, { useState } from "react";
 
-export default function PlayerControls({ isPlaying, onPlayPause, onNext, onPrev }) {
+export default function PlayerControls({ onNext, onPrev, audioRef }) {
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const toggle = () => {
+    if (!audioRef.current) return;
+    if (audioRef.current.paused) {
+      audioRef.current.play();
+      setIsPlaying(true);
+    } else {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  };
+
   return (
-    <div className="player-controls d-flex justify-content-center gap-4 my-3">
-      <button className="btn btn-link text-light" onClick={onPrev}><i className="bi bi-skip-backward-fill fs-3"></i></button>
-      <button className="btn btn-light rounded-circle p-3" onClick={onPlayPause}>
-        {isPlaying ? <i className="bi bi-pause-fill fs-4"></i> : <i className="bi bi-play-fill fs-4"></i>}
-      </button>
-      <button className="btn btn-link text-light" onClick={onNext}><i className="bi bi-skip-forward-fill fs-3"></i></button>
+    <div>
+      <div className="player-controls">
+        <i className="bi bi-skip-backward-fill" onClick={onPrev} style={{cursor:"pointer"}}></i>
+        <button className="btn bg-white bg-opacity-10 text-white" onClick={toggle}>{isPlaying ? <i className="bi bi-pause-fill" /> : <i className="bi bi-play-fill" />}</button>
+        <i className="bi bi-skip-forward-fill" onClick={onNext} style={{cursor:"pointer"}}></i>
+      </div>
     </div>
   );
 }

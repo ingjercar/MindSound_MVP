@@ -1,80 +1,73 @@
-import React, { useEffect, useState, useRef, useContext } from "react";
+// src/pages/Player.jsx
+import React, { useEffect, useState, useRef } from "react";
 import { getJson } from "../api";
-import TrackItem from "../components/TrackItem";
-import PlayerControls from "../components/PlayerControls";
-import { AuthContext } from "../contexts/AuthContext";
 
-export default function PlayerPage() {
+export default function Player() {
   const [tracks, setTracks] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [current, setCurrent] = useState(null);
   const audioRef = useRef(null);
-  const { user } = useContext(AuthContext);
 
-  useEffect(()=> {
-    (async ()=> {
-      const list = await getJson("/api/tracks");
-      // if your backend returns { error } handle it
-      setTracks(Array.isArray(list) ? list : (list.rows || []));
+  useEffect(() => {
+    (async () => {
+      const res = await getJson("/api/tracks");
+      setTracks(res || []);
+      if ((res || []).length) setCurrent(res[0]);
     })();
-  },[]);
+  }, []);
 
-  const selectTrack = (t) => {
-    const idx = tracks.findIndex(x => x.id === t.id);
-    setCurrentIndex(idx >= 0 ? idx : 0);
-    setIsPlaying(true);
-  };
-
-  useEffect(()=> {
-    if (!audioRef.current) return;
-    const src = tracks[currentIndex]?.audio_url;
-    if (src) {
-      audioRef.current.src = src;
-      if (isPlaying) audioRef.current.play().catch(()=>{});
-    } else {
-      audioRef.current.pause();
+  useEffect(() => {
+    if (audioRef.current && current) {
+      audioRef.current.src = current.audio_url;
+      audioRef.current.play().catch(() => { });
     }
-  }, [currentIndex, tracks, isPlaying]);
-
-  const toggle = () => {
-    if (!audioRef.current) return;
-    if (isPlaying) { audioRef.current.pause(); setIsPlaying(false); }
-    else { audioRef.current.play().catch(()=>{}); setIsPlaying(true); }
-  };
-
-  const next = () => {
-    setCurrentIndex(i => Math.min(tracks.length-1, i+1));
-    setIsPlaying(true);
-  };
-  const prev = () => {
-    setCurrentIndex(i => Math.max(0, i-1));
-    setIsPlaying(true);
-  };
+  }, [current]);
 
   return (
-    <div className="container-player p-4" style={{maxWidth:1100, margin:"40px auto"}}>
-      <div>
-        <div className="card-dark p-3 mb-3">
-          <div className="d-flex align-items-center mb-3">
-            <img src={user?.avatar_url || "https://via.placeholder.com/70"} style={{width:70,height:70,borderRadius:12,marginRight:12}} />
-            <div className="text-light">{user?.display_name || user?.email || "Invitado"}</div>
+    <div className="page-container">
+      <div className="container-player">
+        <div>
+          <div className="card-dark profile-card mb-3">
+            <div className="profile">
+              <img src="https://static.vecteezy.com/system/resources/previews/020/765/399/non_2x/default-profile-account-unknown-icon-black-silhouette-free-vector.jpg" alt="profile" />
+              <div className="profile-name">Tu cuenta</div>
+            </div>
+          </div>
+
+          <div className="card-dark">
+            {tracks.map(t => (
+              <div key={t.id} className={`playlist-item ${current?.id === t.id ? "active" : ""}`} onClick={() => setCurrent(t)}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <img src={t.cover_url || "https://via.placeholder.com/50"} alt="cov" style={{ width: 50, height: 50, borderRadius: 8 }} />
+                  <div>
+                    <div className="playlist-title">{t.title}</div>
+                    <div className="playlist-artist">by {t.artist_id}</div>
+                  </div>
+                </div>
+                <div>{Math.floor((t.duration_seconds || 0) / 60)}:{(t.duration_seconds || 0) % 60}</div>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="card-dark p-3">
-          {tracks.map(t => <TrackItem key={t.id} track={t} onSelect={selectTrack} />)}
-        </div>
-      </div>
+        <div className="card-dark player">
+          <img className="player-cover" src={current?.cover_url || "https://wallpaperaccess.com/full/3405398.jpg"} alt="cover" />
+          <h3 className="text-white mt-2">{current?.title || "Selecciona una pista"}</h3>
 
-      <div className="card-dark p-4" style={{marginLeft:20}}>
-        <img src={tracks[currentIndex]?.cover_url || "https://via.placeholder.com/300"} className="player-cover mb-3" style={{width:300,height:300,objectFit:"cover",borderRadius:8}} />
-        <h4 className="text-light">{tracks[currentIndex]?.title || "Selecciona una canción"}</h4>
-        <p className="text-muted">{tracks[currentIndex]?.artist_name || ""}</p>
+          <div className="player-controls">
+            <button className="btn btn-sm btn-outline-light" onClick={() => {
+              const idx = tracks.findIndex(x => x.id === current?.id);
+              if (idx > 0) setCurrent(tracks[idx - 1]);
+            }}>◀</button>
+            <button className="btn btn-sm btn-primary" onClick={() => {
+              if (audioRef.current.paused) audioRef.current.play(); else audioRef.current.pause();
+            }}>Play/Pause</button>
+            <button className="btn btn-sm btn-outline-light" onClick={() => {
+              const idx = tracks.findIndex(x => x.id === current?.id);
+              if (idx < tracks.length - 1) setCurrent(tracks[idx + 1]);
+            }}>▶</button>
+          </div>
 
-        <PlayerControls isPlaying={isPlaying} onPlayPause={toggle} onNext={next} onPrev={prev} />
-        <div className="progress-bar-container d-flex align-items-center p-2">
-          <audio ref={audioRef} onEnded={next} />
-          <div style={{flex:1}} />
+          <audio ref={audioRef} controls style={{ width: "100%", marginTop: 12 }} />
         </div>
       </div>
     </div>
